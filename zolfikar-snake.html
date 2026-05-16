@@ -502,10 +502,8 @@ function tick() {
         return;
       }
     } else {
-      // Wrong letter — bounce
+      // Wrong letter — just flash red, don't move
       doFlash('red');
-      snake.unshift(head); snake.pop();
-      setTimeout(() => { snake.shift(); }, 80);
       draw(); return;
     }
   } else {
@@ -592,7 +590,8 @@ function showOverlay(id) { hideAllOverlays(); document.getElementById(id).classL
 
 // ── INIT ──
 resizeCanvas();
-wordIdx=0; eaten=0; score=0; wordHidden=true; paused=false;
+wordIdx=0; eaten=0; score=0; wordHidden=true; paused=false; letters=[];
+snake=[{x:8,y:7},{x:7,y:7},{x:6,y:7}]; dir={x:1,y:0}; nextDir={x:1,y:0};
 updateWordDisplay(); renderProgress(); draw();
 document.getElementById('side-word').classList.add('hidden');
 document.getElementById('toggle-btn').textContent = '👁 Show';
