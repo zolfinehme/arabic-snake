@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arabic Snake — Learn to Spell!</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f0e17; --surface:#1a1828; --card:#232136;
+  --green:#00e58a; --yellow:#ffd93d; --red:#ff6b6b;
+  --blue:#4cc9f0; --purple:#c77dff; --orange:#ff9f43;
+  --text:#fffffe; --muted:#a7a9be;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; }
+body {
+  font-family:'Baloo 2',cursive;
+  background:var(--bg); color:var(--text);
+  display:flex; flex-direction:column;
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 16px; gap:12px;
+  background:var(--surface);
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  flex-shrink:0;
+}
+.topbar-title { font-size:18px; font-weight:800; }
+.topbar-title span { color:var(--green); }
+.topbar-right { display:flex; gap:10px; align-items:center; }
+
+.score-box {
+  background:var(--card); border:2px solid rgba(255,255,255,0.08);
+  border-radius:50px; padding:5px 16px;
+  font-size:14px; font-weight:800; color:var(--yellow);
+}
+.pause-btn {
+  background:var(--card); border:2px solid rgba(255,255,255,0.1);
+  color:var(--text); font-family:'Baloo 2',cursive;
+  font-size:14px; font-weight:800;
+  padding:5px 16px; border-radius:50px; cursor:pointer;
+  transition:border-color 0.2s, color 0.2s;
+}
+.pause-btn:hover { border-color:var(--yellow); color:var(--yellow); }
+
+/* ── MAIN LAYOUT ── */
+.main {
+  display:flex; flex:1; overflow:hidden;
+  gap:0;
+}
+
+/* ── CANVAS AREA ── */
+.canvas-area {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  position:relative; overflow:hidden; padding:8px;
+}
+.canvas-wrap {
+  position:relative;
+  border:2px solid rgba(255,255,255,0.07);
+  border-radius:14px; overflow:hidden;
+  background:var(--surface);
+  box-shadow:0 8px 40px rgba(0,0,0,0.5);
+}
+canvas { display:block; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width:180px; flex-shrink:0;
+  background:var(--surface);
+  border-left:1px solid rgba(255,255,255,0.06);
+  display:flex; flex-direction:column;
+  padding:14px 12px; gap:16px;
+  overflow-y:auto;
+}
+
+.side-section-label {
+  font-size:10px; font-weight:700; text-transform:uppercase;
+  letter-spacing:2px; color:var(--muted); margin-bottom:6px;
+}
+
+/* Word display in sidebar */
+.side-word {
+  font-family:'Tajawal',sans-serif;
+  font-size:36px; font-weight:900; direction:rtl;
+  color:var(--text); text-align:center;
+  background:var(--card); border:2px solid rgba(255,255,255,0.08);
+  border-radius:12px; padding:10px 8px;
+  transition:opacity 0.3s; line-height:1.2;
+}
+.side-word.hidden { opacity:0.15; filter:blur(4px); }
+.side-meaning { font-size:13px; color:var(--muted); font-weight:700; text-align:center; margin-top:4px; }
+
+.toggle-btn {
+  background:var(--card); border:2px solid rgba(255,255,255,0.1);
+  color:var(--muted); font-family:'Baloo 2',cursive;
+  font-size:12px; font-weight:700;
+  padding:6px 10px; border-radius:50px; cursor:pointer;
+  width:100%; transition:border-color 0.2s, color 0.2s;
+}
+.toggle-btn:hover { border-color:var(--green); color:var(--green); }
+
+/* Progress in sidebar - vertical */
+.prog-list {
+  display:flex; flex-direction:column; gap:8px;
+}
+.prog-letter {
+  font-family:'Tajawal',sans-serif;
+  height:40px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; font-weight:900;
+  background:var(--card); border:2px solid rgba(255,255,255,0.08);
+  color:var(--muted); transition:all 0.3s;
+}
+.prog-letter.eaten {
+  background:rgba(0,229,138,0.15);
+  border-color:var(--green); color:var(--green);
+  transform:scale(1.05);
+}
+.prog-letter.next {
+  border-color:var(--yellow); color:var(--yellow);
+  animation:pulse-next 1s ease-in-out infinite;
+}
+@keyframes pulse-next {
+  0%,100%{box-shadow:0 0 0 0 rgba(255,217,61,0.4);}
+  50%{box-shadow:0 0 0 6px rgba(255,217,61,0);}
+}
+
+/* ── BOTTOM CONTROLS ── */
+.controls-bar {
+  flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  padding:10px; gap:8px;
+  background:var(--surface);
+  border-top:1px solid rgba(255,255,255,0.06);
+}
+.controls {
+  display:grid;
+  grid-template-areas:". up ." "left . right" ". down .";
+  gap:6px;
+}
+.ctrl-btn {
+  width:46px; height:46px; border-radius:12px;
+  background:var(--card); border:2px solid rgba(255,255,255,0.1);
+  color:var(--text); font-size:18px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:background 0.15s, border-color 0.15s, transform 0.1s;
+  user-select:none; -webkit-user-select:none;
+}
+.ctrl-btn:active { transform:scale(0.88); background:rgba(0,229,138,0.15); border-color:var(--green); }
+.ctrl-up    { grid-area:up; }
+.ctrl-left  { grid-area:left; }
+.ctrl-right { grid-area:right; }
+.ctrl-down  { grid-area:down; }
+
+/* ── OVERLAYS ── */
+.overlay {
+  position:absolute; inset:0;
+  background:rgba(15,14,23,0.93);
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:8px; text-align:center; padding:16px;
+  border-radius:12px; overflow:auto;
+}
+.overlay.hidden { display:none; }
+.ov-icon { font-size:40px; line-height:1; }
+.ov-title { font-size:clamp(18px,3.5vw,28px); font-weight:800; }
+.ov-title span { color:var(--green); }
+.ov-sub { font-size:13px; color:var(--muted); max-width:280px; line-height:1.5; }
+.ov-word {
+  font-family:'Tajawal',sans-serif;
+  font-size:44px; font-weight:900; color:var(--yellow);
+  direction:rtl; line-height:1;
+}
+.ov-meaning { font-size:16px; color:var(--muted); font-weight:700; }
+
+.ov-btn {
+  background:linear-gradient(135deg,var(--green),#00b368);
+  color:#0f0e17; font-family:'Baloo 2',cursive;
+  font-size:15px; font-weight:800;
+  padding:10px 30px; border:none; border-radius:50px;
+  cursor:pointer; box-shadow:0 6px 24px rgba(0,229,138,0.35);
+  transition:transform 0.2s; margin-top:4px;
+}
+.ov-btn:hover { transform:translateY(-2px); }
+
+/* ── FLASH ── */
+.flash {
+  position:absolute; inset:0; border-radius:12px;
+  pointer-events:none; opacity:0; transition:opacity 0.08s;
+}
+.flash.green { background:rgba(0,229,138,0.18); }
+.flash.red   { background:rgba(255,107,107,0.25); }
+.flash.show  { opacity:1; }
+
+/* ── PAUSE SCREEN ── */
+#pause-overlay .ov-title { color:var(--yellow); }
+
+/* Mobile adjustments */
+@media (max-width:540px) {
+  .sidebar { width:130px; }
+  .side-word { font-size:28px; }
+  .ctrl-btn { width:40px; height:40px; font-size:16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-title">🐍 Arabic <span>Snake</span></div>
+  <div class="topbar-right">
+    <div class="score-box">⭐ <span id="score-val">0</span></div>
+    <button class="pause-btn" id="pause-btn" onclick="togglePause()">⏸ Pause</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- CANVAS -->
+  <div class="canvas-area">
+    <div class="canvas-wrap" id="canvas-wrap">
+      <canvas id="game-canvas"></canvas>
+      <div class="flash" id="flash"></div>
+
+      <!-- START -->
+      <div class="overlay" id="start-overlay">
+        <div class="ov-icon">🐍</div>
+        <div class="ov-title">Arabic <span>Snake!</span></div>
+        <div class="ov-sub">Eat the letters in the correct order to spell the word. Wrong letter = bounce back!</div>
+        <button class="ov-btn" onclick="startGame()">Start Game 🚀</button>
+      </div>
+
+      <!-- GET READY -->
+      <div class="overlay hidden" id="ready-overlay">
+        <div class="ov-icon">👀</div>
+        <div class="ov-title">Get <span>Ready!</span></div>
+        <div class="ov-word" id="ready-word"></div>
+        <div class="ov-meaning" id="ready-meaning"></div>
+        <div class="ov-sub">Memorise the word then eat the letters in order!</div>
+        <button class="ov-btn" onclick="beginRound()">I'm Ready! 🐍</button>
+      </div>
+
+      <!-- ROUND COMPLETE -->
+      <div class="overlay hidden" id="round-overlay">
+        <div class="ov-icon">🎉</div>
+        <div class="ov-title">Word <span>Complete!</span></div>
+        <div class="ov-sub" id="round-msg"></div>
+        <button class="ov-btn" onclick="nextRound()">Next Word →</button>
+      </div>
+
+      <!-- PAUSED -->
+      <div class="overlay hidden" id="pause-overlay">
+        <div class="ov-icon">⏸</div>
+        <div class="ov-title" style="color:var(--yellow)">Paused</div>
+        <div class="ov-sub">Take a breath — the snake is waiting!</div>
+        <button class="ov-btn" onclick="togglePause()">▶ Resume</button>
+      </div>
+
+      <!-- GAME OVER -->
+      <div class="overlay hidden" id="over-overlay">
+        <div class="ov-icon">💥</div>
+        <div class="ov-title" style="color:var(--red)">Game Over!</div>
+        <div class="ov-sub" id="over-msg"></div>
+        <button class="ov-btn" onclick="restartGame()">Try Again 🔄</button>
+      </div>
+
+      <!-- ALL DONE -->
+      <div class="overlay hidden" id="done-overlay">
+        <div class="ov-icon">🏆</div>
+        <div class="ov-title">All Words <span>Done!</span></div>
+        <div class="ov-sub" id="done-msg"></div>
+        <button class="ov-btn" onclick="restartGame()">Play Again 🔄</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div>
+      <div class="side-section-label">Spell this</div>
+      <div class="side-word" id="side-word">كتاب</div>
+      <div class="side-meaning" id="side-meaning">= Book</div>
+      <button class="toggle-btn" id="toggle-btn" onclick="toggleWord()" style="margin-top:8px">👁 Hide</button>
+    </div>
+    <div>
+      <div class="side-section-label">Progress</div>
+      <div class="prog-list" id="prog-letters"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls-bar">
+  <div class="controls">
+    <button class="ctrl-btn ctrl-up"    onclick="setDir(0,-1)">▲</button>
+    <button class="ctrl-btn ctrl-left"  onclick="setDir(-1,0)">◀</button>
+    <button class="ctrl-btn ctrl-right" onclick="setDir(1,0)">▶</button>
+    <button class="ctrl-btn ctrl-down"  onclick="setDir(0,1)">▼</button>
+  </div>
+</div>
+
+<script>
+// ── WORD LIST ──
+const words = [
+  { arabic:'كتاب',  letters:['ك','ت','ا','ب'], meaning:'Book' },
+  { arabic:'بيت',   letters:['ب','ي','ت'],     meaning:'House' },
+  { arabic:'ماء',   letters:['م','ا','ء'],     meaning:'Water' },
+  { arabic:'نور',   letters:['ن','و','ر'],     meaning:'Light' },
+  { arabic:'قلب',   letters:['ق','ل','ب'],     meaning:'Heart' },
+  { arabic:'شمس',   letters:['ش','م','س'],     meaning:'Sun' },
+  { arabic:'قمر',   letters:['ق','م','ر'],     meaning:'Moon' },
+  { arabic:'باب',   letters:['ب','ا','ب'],     meaning:'Door' },
+];
+
+// ── CANVAS SETUP ──
+const canvas = document.getElementById('game-canvas');
+const ctx    = canvas.getContext('2d');
+const CELL   = 34;
+let COLS, ROWS;
+
+function resizeCanvas() {
+  const area = document.querySelector('.canvas-area');
+  const sidebar = document.querySelector('.sidebar');
+  const topbar  = document.querySelector('.topbar');
+  const controls= document.querySelector('.controls-bar');
+  const avW = area.clientWidth  - 20;
+  const avH = area.clientHeight - 20;
+  COLS = Math.floor(avW / CELL);
+  ROWS = Math.floor(avH / CELL);
+  canvas.width  = COLS * CELL;
+  canvas.height = ROWS * CELL;
+  document.getElementById('canvas-wrap').style.width  = canvas.width  + 'px';
+  document.getElementById('canvas-wrap').style.height = canvas.height + 'px';
+}
+
+// ── STATE ──
+let snake, dir, nextDir, letters, eaten, score, wordIdx, gameLoop, wordHidden, paused;
+let running = false;
+
+function init() {
+  const mx = Math.floor(COLS/2), my = Math.floor(ROWS/2);
+  snake   = [{ x:mx, y:my }, { x:mx-1, y:my }, { x:mx-2, y:my }];
+  dir     = { x:1, y:0 };
+  nextDir = { x:1, y:0 };
+  eaten   = 0;
+  spawnLetters();
+  renderProgress();
+  draw();
+}
+
+function spawnLetters() {
+  const word = words[wordIdx];
+  letters = [];
+  const used = new Set(snake.map(s => `${s.x},${s.y}`));
+  word.letters.forEach((ch, i) => {
+    let pos;
+    let tries = 0;
+    do {
+      pos = { x:Math.floor(Math.random()*COLS), y:Math.floor(Math.random()*ROWS) };
+      tries++;
+    } while((used.has(`${pos.x},${pos.y}`) || letters.some(l=>l.x===pos.x&&l.y===pos.y)) && tries < 200);
+    letters.push({ x:pos.x, y:pos.y, ch, idx:i });
+    used.add(`${pos.x},${pos.y}`);
+  });
+}
+
+// ── UI ──
+function renderProgress() {
+  const word = words[wordIdx];
+  const cont = document.getElementById('prog-letters');
+  cont.innerHTML = word.letters.map((ch, i) => {
+    let cls = i < eaten ? 'eaten' : i === eaten ? 'next' : '';
+    return `<div class="prog-letter ${cls}">${ch}</div>`;
+  }).join('');
+}
+
+function updateWordDisplay() {
+  const word = words[wordIdx];
+  document.getElementById('side-word').textContent    = word.arabic;
+  document.getElementById('side-meaning').textContent = `= ${word.meaning}`;
+}
+
+function toggleWord() {
+  wordHidden = !wordHidden;
+  document.getElementById('side-word').classList.toggle('hidden', wordHidden);
+  document.getElementById('toggle-btn').textContent = wordHidden ? '👁 Show' : '👁 Hide';
+}
+
+// ── PAUSE ──
+function togglePause() {
+  if (!running && !paused) return;
+  paused = !paused;
+  if (paused) {
+    clearInterval(gameLoop);
+    showOverlay('pause-overlay');
+    document.getElementById('pause-btn').textContent = '▶ Resume';
+  } else {
+    hideAllOverlays();
+    document.getElementById('pause-btn').textContent = '⏸ Pause';
+    gameLoop = setInterval(tick, 240);
+  }
+}
+
+// ── DIRECTION ──
+function setDir(x, y) {
+  if (paused) return;
+  if (x === -dir.x && y === -dir.y) return;
+  nextDir = { x, y };
+}
+
+document.addEventListener('keydown', e => {
+  switch(e.key) {
+    case 'ArrowUp':    e.preventDefault(); setDir(0,-1); break;
+    case 'ArrowDown':  e.preventDefault(); setDir(0,1);  break;
+    case 'ArrowLeft':  e.preventDefault(); setDir(-1,0); break;
+    case 'ArrowRight': e.preventDefault(); setDir(1,0);  break;
+    case 'Escape': case 'p': case 'P': if(running) togglePause(); break;
+  }
+});
+
+// ── FLASH ──
+function doFlash(type) {
+  const el = document.getElementById('flash');
+  el.className = `flash ${type} show`;
+  setTimeout(() => el.classList.remove('show'), 180);
+}
+
+// ── GAME FLOW ──
+function showReady() {
+  const word = words[wordIdx];
+  document.getElementById('ready-word').textContent    = word.arabic;
+  document.getElementById('ready-meaning').textContent = `= ${word.meaning}`;
+  showOverlay('ready-overlay');
+  updateWordDisplay();
+  renderProgress();
+}
+
+function startGame() {
+  wordIdx = 0; score = 0; wordHidden = false; paused = false;
+  document.getElementById('score-val').textContent = 0;
+  document.getElementById('side-word').classList.add('hidden');
+  document.getElementById('toggle-btn').textContent = '👁 Show';
+  document.getElementById('pause-btn').textContent  = '⏸ Pause';
+  resizeCanvas();
+  showReady();
+}
+
+function beginRound() {
+  hideAllOverlays();
+  init();
+  running = true; paused = false;
+  clearInterval(gameLoop);
+  gameLoop = setInterval(tick, 240);
+}
+
+function nextRound() {
+  wordIdx++;
+  if (wordIdx >= words.length) {
+    running = false; clearInterval(gameLoop);
+    document.getElementById('done-msg').textContent = `Amazing! You scored ${score} points and spelled all ${words.length} words! 🏆`;
+    showOverlay('done-overlay');
+    return;
+  }
+  showReady();
+}
+
+function restartGame() { startGame(); }
+
+// ── TICK ──
+function tick() {
+  dir = { ...nextDir };
+  const head = { x:snake[0].x + dir.x, y:snake[0].y + dir.y };
+
+  if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
+    gameOver('You hit the wall! 🧱'); return;
+  }
+  if (snake.some(s => s.x===head.x && s.y===head.y)) {
+    gameOver('You bit yourself! 😬'); return;
+  }
+
+  const hit = letters.find(l => l.x===head.x && l.y===head.y);
+  if (hit) {
+    if (hit.idx === eaten) {
+      doFlash('green');
+      score += 10;
+      document.getElementById('score-val').textContent = score;
+      snake.unshift(head);
+      letters = letters.filter(l => l !== hit);
+      eaten++;
+      renderProgress();
+      if (eaten === words[wordIdx].letters.length) {
+        running = false; clearInterval(gameLoop); draw();
+        setTimeout(() => {
+          document.getElementById('round-msg').textContent =
+            `"${words[wordIdx].arabic}" = ${words[wordIdx].meaning} ✅ +${eaten*10} pts`;
+          showOverlay('round-overlay');
+        }, 300);
+        return;
+      }
+    } else {
+      // Wrong letter — bounce
+      doFlash('red');
+      snake.unshift(head); snake.pop();
+      setTimeout(() => { snake.shift(); }, 80);
+      draw(); return;
+    }
+  } else {
+    snake.unshift(head); snake.pop();
+  }
+  draw();
+}
+
+function gameOver(msg) {
+  running = false; clearInterval(gameLoop);
+  doFlash('red');
+  document.getElementById('over-msg').textContent = msg + ` Final score: ${score}`;
+  setTimeout(() => showOverlay('over-overlay'), 300);
+}
+
+// ── DRAW ──
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  for (let x=0;x<=COLS;x++){ctx.beginPath();ctx.moveTo(x*CELL,0);ctx.lineTo(x*CELL,canvas.height);ctx.stroke();}
+  for (let y=0;y<=ROWS;y++){ctx.beginPath();ctx.moveTo(0,y*CELL);ctx.lineTo(canvas.width,y*CELL);ctx.stroke();}
+
+  // Letters
+  letters.forEach(l => {
+    const isNext = l.idx === eaten;
+    if (isNext) { ctx.shadowColor='#ffd93d'; ctx.shadowBlur=16; }
+    ctx.fillStyle = isNext ? 'rgba(255,217,61,0.15)' : 'rgba(76,201,240,0.1)';
+    rr(l.x*CELL+2, l.y*CELL+2, CELL-4, CELL-4, 8); ctx.fill();
+    ctx.strokeStyle = isNext ? '#ffd93d' : 'rgba(76,201,240,0.4)';
+    ctx.lineWidth   = isNext ? 2 : 1.5;
+    rr(l.x*CELL+2, l.y*CELL+2, CELL-4, CELL-4, 8); ctx.stroke();
+    ctx.shadowBlur  = 0;
+    ctx.fillStyle   = isNext ? '#ffd93d' : '#4cc9f0';
+    ctx.font        = `bold ${Math.floor(CELL*0.52)}px Tajawal,sans-serif`;
+    ctx.textAlign   = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(l.ch, l.x*CELL+CELL/2, l.y*CELL+CELL/2+1);
+  });
+
+  // Snake
+  snake.forEach((seg, i) => {
+    const isHead = i === 0;
+    if (isHead) { ctx.shadowColor='#00e58a'; ctx.shadowBlur=14; ctx.fillStyle='#00e58a'; }
+    else if (i < eaten) { ctx.shadowColor='rgba(0,229,138,0.4)'; ctx.shadowBlur=6; ctx.fillStyle='rgba(0,229,138,0.75)'; }
+    else { ctx.shadowBlur=0; ctx.fillStyle='rgba(0,229,138,0.3)'; }
+    rr(seg.x*CELL+3, seg.y*CELL+3, CELL-6, CELL-6, isHead?10:8); ctx.fill();
+    ctx.shadowBlur=0;
+
+    // Eaten letters on body
+    if (i>0 && i<=eaten && words[wordIdx]?.letters[i-1]) {
+      ctx.fillStyle='#0f0e17';
+      ctx.font=`bold ${Math.floor(CELL*0.46)}px Tajawal,sans-serif`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(words[wordIdx].letters[i-1], seg.x*CELL+CELL/2, seg.y*CELL+CELL/2+1);
+    }
+
+    // Eyes
+    if (isHead) {
+      ctx.fillStyle='#0f0e17';
+      const e1x=dir.x===1?0.65:dir.x===-1?0.35:0.35, e1y=dir.y===1?0.65:dir.y===-1?0.35:0.35;
+      const e2x=dir.x===1?0.65:dir.x===-1?0.35:0.65, e2y=dir.y===1?0.35:dir.y===-1?0.65:0.35;
+      const r=CELL*0.1;
+      ctx.beginPath();ctx.arc(seg.x*CELL+CELL*e1x,seg.y*CELL+CELL*e1y,r,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(seg.x*CELL+CELL*e2x,seg.y*CELL+CELL*e2y,r,0,Math.PI*2);ctx.fill();
+    }
+  });
+}
+
+function rr(x,y,w,h,r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+}
+
+function hideAllOverlays() {
+  ['start-overlay','ready-overlay','round-overlay','pause-overlay','over-overlay','done-overlay']
+    .forEach(id => document.getElementById(id).classList.add('hidden'));
+}
+function showOverlay(id) { hideAllOverlays(); document.getElementById(id).classList.remove('hidden'); }
+
+// ── INIT ──
+resizeCanvas();
+wordIdx=0; eaten=0; score=0; wordHidden=true; paused=false;
+updateWordDisplay(); renderProgress(); draw();
+document.getElementById('side-word').classList.add('hidden');
+document.getElementById('toggle-btn').textContent = '👁 Show';
+window.addEventListener('resize', () => { resizeCanvas(); draw(); });
+</script>
+</body>
+</html>
